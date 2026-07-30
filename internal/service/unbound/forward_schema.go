@@ -1,8 +1,10 @@
 package unbound
 
 import (
+	"github.com/browningluke/opnsense-go/pkg/api"
 	"github.com/browningluke/opnsense-go/pkg/unbound"
 	"github.com/browningluke/terraform-provider-opnsense/internal/tools"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	dschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -10,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -17,6 +20,7 @@ import (
 type forwardResourceModel struct {
 	Enabled    types.Bool   `tfsdk:"enabled"`
 	Domain     types.String `tfsdk:"domain"`
+	Type       types.String `tfsdk:"type"`
 	ServerIP   types.String `tfsdk:"server_ip"`
 	ServerPort types.Int64  `tfsdk:"server_port"`
 	VerifyCN   types.String `tfsdk:"verify_cn"`
@@ -38,6 +42,15 @@ func forwardResourceSchema() schema.Schema {
 			"domain": schema.StringAttribute{
 				MarkdownDescription: "If a domain is entered here, queries for this specific domain will be forwarded to the specified server. Set to `\"\"` to forward all queries to the specified server.",
 				Required:            true,
+			},
+			"type": schema.StringAttribute{
+				MarkdownDescription: "Type of forward. Available values: `query`, `dot`. Defaults to `query`.",
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString("query"),
+				Validators: []validator.String{
+					stringvalidator.OneOf("query", "dot"),
+				},
 			},
 			"server_ip": schema.StringAttribute{
 				MarkdownDescription: "IP address of DNS server to forward all requests.",
@@ -83,6 +96,10 @@ func forwardDataSourceSchema() dschema.Schema {
 				MarkdownDescription: "If a domain is entered here, queries for this specific domain will be forwarded to the specified server.",
 				Computed:            true,
 			},
+			"type": dschema.StringAttribute{
+				MarkdownDescription: "Type of forward. Available values: `query`, `dot`.",
+				Computed:            true,
+			},
 			"server_ip": dschema.StringAttribute{
 				MarkdownDescription: "IP address of DNS server to forward all requests.",
 				Computed:            true,
@@ -99,10 +116,29 @@ func forwardDataSourceSchema() dschema.Schema {
 	}
 }
 
+// OPNsense's own enum for this field is "forward"/"dot". The schema exposes
+// "query"/"dot" instead, since this is the opnsense_unbound_forward
+// resource and a "type = forward" attribute on a "forward" resource reads
+// oddly. These two functions are the only place that translates between them.
+func typeToAPI(t string) string {
+	if t == "query" {
+		return "forward"
+	}
+	return t
+}
+
+func typeFromAPI(t string) string {
+	if t == "forward" {
+		return "query"
+	}
+	return t
+}
+
 func convertForwardSchemaToStruct(d *forwardResourceModel) (*unbound.Forward, error) {
 	return &unbound.Forward{
 		Enabled:  tools.BoolToString(d.Enabled.ValueBool()),
 		Domain:   d.Domain.ValueString(),
+		Type:     api.SelectedMap(typeToAPI(d.Type.ValueString())),
 		Server:   d.ServerIP.ValueString(),
 		Port:     tools.Int64ToString(d.ServerPort.ValueInt64()),
 		VerifyCN: d.VerifyCN.ValueString(),
@@ -113,6 +149,7 @@ func convertForwardStructToSchema(d *unbound.Forward) (*forwardResourceModel, er
 	return &forwardResourceModel{
 		Enabled:    types.BoolValue(tools.StringToBool(d.Enabled)),
 		Domain:     types.StringValue(d.Domain),
+		Type:       types.StringValue(typeFromAPI(d.Type.String())),
 		ServerIP:   types.StringValue(d.Server),
 		ServerPort: types.Int64Value(tools.StringToInt64(d.Port)),
 		VerifyCN:   types.StringValue(d.VerifyCN),
