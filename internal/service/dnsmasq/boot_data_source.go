@@ -10,26 +10,26 @@ import (
 )
 
 // Ensure provider defined types fully satisfy framework interfaces.
-var _ datasource.DataSource = &hostDataSource{}
-var _ datasource.DataSourceWithConfigure = &hostDataSource{}
+var _ datasource.DataSource = &bootDataSource{}
+var _ datasource.DataSourceWithConfigure = &bootDataSource{}
 
-func newHostDataSource() datasource.DataSource {
-	return &hostDataSource{}
+func newBootDataSource() datasource.DataSource {
+	return &bootDataSource{}
 }
 
-type hostDataSource struct {
+type bootDataSource struct {
 	client opnsense.Client
 }
 
-func (d *hostDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_dnsmasq_host"
+func (d *bootDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_dnsmasq_boot"
 }
 
-func (d *hostDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	resp.Schema = hostDataSourceSchema()
+func (d *bootDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = bootDataSourceSchema()
 }
 
-func (d *hostDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *bootDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	// Prevent panic if the provider has not been configured.
 	if req.ProviderData == nil {
 		return
@@ -47,8 +47,8 @@ func (d *hostDataSource) Configure(ctx context.Context, req datasource.Configure
 	d.client = opnsense.NewClient(apiClient)
 }
 
-func (d *hostDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *hostResourceModel
+func (d *bootDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data *bootResourceModel
 
 	// Read Terraform configuration data into the model
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
@@ -58,18 +58,18 @@ func (d *hostDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 
 	// Get resource from OPNsense API
-	resourceStruct, err := d.client.Dnsmasq().GetHost(ctx, data.Id.ValueString())
+	resourceStruct, err := d.client.Dnsmasq().GetBoot(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read dnsmasq host, got error: %s", err))
+			fmt.Sprintf("Unable to read dnsmasq boot, got error: %s", err))
 		return
 	}
 
 	// Convert OPNsense struct to TF schema
-	resourceModel, err := convertHostStructToSchema(resourceStruct)
+	resourceModel, err := convertBootStructToSchema(resourceStruct)
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",
-			fmt.Sprintf("Unable to read dnsmasq host, got error: %s", err))
+			fmt.Sprintf("Unable to read dnsmasq boot, got error: %s", err))
 		return
 	}
 	resourceModel.Id = data.Id
