@@ -29,7 +29,7 @@ type groupResourceModel struct {
 func groupResourceSchema() schema.Schema {
 	return schema.Schema{
 		MarkdownDescription: "Firewall groups allow multiple interfaces to be grouped together and referenced as a single firewall interface.",
-
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "The name of the firewall group.",
