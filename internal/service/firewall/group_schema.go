@@ -2,15 +2,17 @@ package firewall
 
 import (
 	"context"
+	"regexp"
 
 	"github.com/browningluke/opnsense-go/pkg/firewall"
 	"github.com/browningluke/terraform-provider-opnsense/internal/tools"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	dschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -29,15 +31,22 @@ type groupResourceModel struct {
 func groupResourceSchema() schema.Schema {
 	return schema.Schema{
 		MarkdownDescription: "Firewall groups allow multiple interfaces to be grouped together and referenced as a single firewall interface.",
-		Version: 1,
+		Version:             1,
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
-				MarkdownDescription: "The name of the firewall group.",
+				MarkdownDescription: "Only texts containing letters, digits and underscores with a maximum length of 15 characters are allowed and the name may not end with a digit.",
 				Required:            true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[0-9a-zA-Z_]{0,14}[a-zA-Z_]$`),
+						"Only texts containing letters, digits and underscores with a maximum length of 15 characters are allowed and the name may not end with a digit.",
+					),
+					stringvalidator.LengthBetween(1, 15),
+				},
 			},
 
 			"members": schema.SetAttribute{
-				MarkdownDescription: "Interfaces that belong to this firewall group.",
+				MarkdownDescription: "Rules for WAN type interfaces in groups do not contain the reply-to mechanism upon which Multi-WAN typically relies.",
 				Required:            true,
 				ElementType:         types.StringType,
 				Validators: []validator.Set{
@@ -45,22 +54,23 @@ func groupResourceSchema() schema.Schema {
 				},
 			},
 
-			"no_group": schema.StringAttribute{
-				MarkdownDescription: "Whether the group should not be included in automatically generated interface groups. Defaults to `\"0\"`.",
-				Optional:            true,
-				Computed:            true,
-				Default:             stringdefault.StaticString("0"),
-			},
-
 			"sequence": schema.Int64Attribute{
-				MarkdownDescription: "The sequence number used to order firewall groups. Must be between `0` and `9999`. Defaults to `0`.",
+				MarkdownDescription: "Priority sequence used in sorting the groups",
 				Optional:            true,
 				Computed:            true,
 				Default:             int64default.StaticInt64(0),
+				Validators: []validator.Int64{
+					int64validator.Between(0, 9999),
+				},
+			},
+
+			"no_group": schema.StringAttribute{
+				MarkdownDescription: "Prevent grouping these members in the interfaces menu section",
+				Optional:            true,
 			},
 
 			"description": schema.StringAttribute{
-				MarkdownDescription: "Optional description for this firewall group.",
+				MarkdownDescription: "You may enter a description here for your reference (not parsed).",
 				Optional:            true,
 			},
 
@@ -86,28 +96,28 @@ func groupDataSourceSchema() dschema.Schema {
 			},
 
 			"name": dschema.StringAttribute{
-				MarkdownDescription: "The name of the firewall group.",
+				MarkdownDescription: "Only texts containing letters, digits and underscores with a maximum length of 15 characters are allowed and the name may not end with a digit.",
 				Computed:            true,
 			},
 
 			"members": dschema.SetAttribute{
-				MarkdownDescription: "Interfaces that belong to this firewall group.",
+				MarkdownDescription: "Rules for WAN type interfaces in groups do not contain the reply-to mechanism upon which Multi-WAN typically relies.",
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 
-			"no_group": dschema.StringAttribute{
-				MarkdownDescription: "Whether the group is excluded from automatically generated interface groups.",
+			"sequence": dschema.Int64Attribute{
+				MarkdownDescription: "Priority sequence used in sorting the groups",
 				Computed:            true,
 			},
 
-			"sequence": dschema.Int64Attribute{
-				MarkdownDescription: "The sequence number used to order firewall groups.",
+			"no_group": dschema.StringAttribute{
+				MarkdownDescription: "Prevent grouping these members in the interfaces menu section",
 				Computed:            true,
 			},
 
 			"description": dschema.StringAttribute{
-				MarkdownDescription: "Description for this firewall group.",
+				MarkdownDescription: "You may enter a description here for your reference (not parsed).",
 				Computed:            true,
 			},
 		},

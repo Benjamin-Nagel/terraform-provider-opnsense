@@ -23,14 +23,14 @@ resource "opnsense_firewall_group" "example" {
 
 ### Required
 
-- `members` (Set of String) Interfaces that belong to this firewall group.
-- `name` (String) The name of the firewall group.
+- `members` (Set of String) Rules for WAN type interfaces in groups do not contain the reply-to mechanism upon which Multi-WAN typically relies.
+- `name` (String) Only texts containing letters, digits and underscores with a maximum length of 15 characters are allowed and the name may not end with a digit.
 
 ### Optional
 
-- `description` (String) Optional description for this firewall group.
-- `no_group` (String) Whether the group should not be included in automatically generated interface groups. Defaults to `"0"`.
-- `sequence` (Number) The sequence number used to order firewall groups. Must be between `0` and `9999`. Defaults to `0`.
+- `description` (String) You may enter a description here for your reference (not parsed).
+- `no_group` (String) Prevent grouping these members in the interfaces menu section
+- `sequence` (Number) Priority sequence used in sorting the groups
 
 ### Read-Only
 
