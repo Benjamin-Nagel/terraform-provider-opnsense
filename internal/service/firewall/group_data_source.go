@@ -56,7 +56,7 @@ func (d *groupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	// Get firewall group from OPNsense unbound API
+	// Get firewall group from OPNsense API
 	resourceStruct, err := d.client.Firewall().GetFilter(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Client Error",

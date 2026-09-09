@@ -72,7 +72,7 @@ func (r *groupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	// Add wg group to unbound
+	// Add wg group to firewall service
 	id, err := r.client.Firewall().AddGroup(ctx, wgGroup)
 	if err != nil {
 		if id != "" {
@@ -116,7 +116,7 @@ func (r *groupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	// Get wg group from OPNsense unbound API
+	// Get wg group from OPNsense API
 	wgGroup, err := r.client.Firewall().GetGroup(ctx, data.Id.ValueString())
 	if err != nil {
 		var notFoundError *errs.NotFoundError
@@ -164,7 +164,7 @@ func (r *groupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	// Update wg group in unbound
+	// Update wg group in firewall service
 	err = r.client.Firewall().UpdateGroup(ctx, data.Id.ValueString(), wgGroup)
 	if err != nil {
 		resp.Diagnostics.AddError("Group Error",
